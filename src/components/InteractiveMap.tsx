@@ -1,96 +1,72 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { feature } from 'topojson-client';
-import { geoAlbersUsa, geoPath } from 'd3-geo';
-import usTopo from 'us-atlas/states-10m.json';
-import { STATE_JOBS_DATA, StateData, JobListing } from '@/data/stateJobs';
+import React, { useState } from 'react';
 
-export default function InteractiveMap() {
-  const [states, setStates] = useState<any[]>([]);
-  const [hoveredFips, setHoveredFips] = useState<string | null>(null);
-  const [selectedState, setSelectedState] = useState<StateData | null>(null);
+// Map ANSI FIPS State Codes to Regions
+const FIPS_REGION_MAP: Record<string, { id: string; name: string; color: string; hoverColor: string }> = {
+  // Midwest (Teal)
+  '27': { id: 'midwest', name: 'Midwest', color: 'fill-teal-600/60', hoverColor: 'hover:fill-teal-400' }, // MN
+  '55': { id: 'midwest', name: 'Midwest', color: 'fill-teal-600/60', hoverColor: 'hover:fill-teal-400' }, // WI
+  '17': { id: 'midwest', name: 'Midwest', color: 'fill-teal-600/60', hoverColor: 'hover:fill-teal-400' }, // IL
+  '18': { id: 'midwest', name: 'Midwest', color: 'fill-teal-600/60', hoverColor: 'hover:fill-teal-400' }, // IN
+  '26': { id: 'midwest', name: 'Midwest', color: 'fill-teal-600/60', hoverColor: 'hover:fill-teal-400' }, // MI
+  '39': { id: 'midwest', name: 'Midwest', color: 'fill-teal-600/60', hoverColor: 'hover:fill-teal-400' }, // OH
+  '38': { id: 'midwest', name: 'Midwest', color: 'fill-teal-600/60', hoverColor: 'hover:fill-teal-400' }, // ND
+  '46': { id: 'midwest', name: 'Midwest', color: 'fill-teal-600/60', hoverColor: 'hover:fill-teal-400' }, // SD
+  '31': { id: 'midwest', name: 'Midwest', color: 'fill-teal-600/60', hoverColor: 'hover:fill-teal-400' }, // NE
+  '19': { id: 'midwest', name: 'Midwest', color: 'fill-teal-600/60', hoverColor: 'hover:fill-teal-400' }, // IA
+  '20': { id: 'midwest', name: 'Midwest', color: 'fill-teal-600/60', hoverColor: 'hover:fill-teal-400' }, // KS
+  '29': { id: 'midwest', name: 'Midwest', color: 'fill-teal-600/60', hoverColor: 'hover:fill-teal-400' }, // MO
 
-  // Setup standard US projection
-  const projection = geoAlbersUsa().scale(1000).translate([480, 250]);
-  const pathGenerator = geoPath().projection(projection);
+  // Southeast (Amber)
+  '12': { id: 'southeast', name: 'Southeast', color: 'fill-amber-600/60', hoverColor: 'hover:fill-amber-400' }, // FL
+  '13': { id: 'southeast', name: 'Southeast', color: 'fill-amber-600/60', hoverColor: 'hover:fill-amber-400' }, // GA
+  '37': { id: 'southeast', name: 'Southeast', color: 'fill-amber-600/60', hoverColor: 'hover:fill-amber-400' }, // NC
+  '45': { id: 'southeast', name: 'Southeast', color: 'fill-amber-600/60', hoverColor: 'hover:fill-amber-400' }, // SC
+  '51': { id: 'southeast', name: 'Southeast', color: 'fill-amber-600/60', hoverColor: 'hover:fill-amber-400' }, // VA
+  '54': { id: 'southeast', name: 'Southeast', color: 'fill-amber-600/60', hoverColor: 'hover:fill-amber-400' }, // WV
+  '47': { id: 'southeast', name: 'Southeast', color: 'fill-amber-600/60', hoverColor: 'hover:fill-amber-400' }, // TN
+  '21': { id: 'southeast', name: 'Southeast', color: 'fill-amber-600/60', hoverColor: 'hover:fill-amber-400' }, // KY
+  '01': { id: 'southeast', name: 'Southeast', color: 'fill-amber-600/60', hoverColor: 'hover:fill-amber-400' }, // AL
+  '28': { id: 'southeast', name: 'Southeast', color: 'fill-amber-600/60', hoverColor: 'hover:fill-amber-400' }, // MS
+  '22': { id: 'southeast', name: 'Southeast', color: 'fill-amber-600/60', hoverColor: 'hover:fill-amber-400' }, // LA
+  '05': { id: 'southeast', name: 'Southeast', color: 'fill-amber-600/60', hoverColor: 'hover:fill-amber-400' }, // AR
+  '24': { id: 'southeast', name: 'Southeast', color: 'fill-amber-600/60', hoverColor: 'hover:fill-amber-400' }, // MD
+  '10': { id: 'southeast', name: 'Southeast', color: 'fill-amber-600/60', hoverColor: 'hover:fill-amber-400' }, // DE
 
-  useEffect(() => {
-    const geoData = feature(usTopo as any, usTopo.objects.states as any) as any;
-    setStates(geoData.features || []);
-  }, []);
+  // Southwest (Orange)
+  '48': { id: 'southwest', name: 'Southwest', color: 'fill-orange-600/60', hoverColor: 'hover:fill-orange-400' }, // TX
+  '40': { id: 'southwest', name: 'Southwest', color: 'fill-orange-600/60', hoverColor: 'hover:fill-orange-400' }, // OK
+  '35': { id: 'southwest', name: 'Southwest', color: 'fill-orange-600/60', hoverColor: 'hover:fill-orange-400' }, // NM
+  '04': { id: 'southwest', name: 'Southwest', color: 'fill-orange-600/60', hoverColor: 'hover:fill-orange-400' }, // AZ
 
-  const handleStateClick = (fips: string) => {
-    if (STATE_JOBS_DATA[fips]) {
-      setSelectedState(STATE_JOBS_DATA[fips]);
-    }
-  };
+  // West (Blue)
+  '06': { id: 'west', name: 'West', color: 'fill-blue-600/60', hoverColor: 'hover:fill-blue-400' }, // CA
+  '53': { id: 'west', name: 'West', color: 'fill-blue-600/60', hoverColor: 'hover:fill-blue-400' }, // WA
+  '41': { id: 'west', name: 'West', color: 'fill-blue-600/60', hoverColor: 'hover:fill-blue-400' }, // OR
+  '32': { id: 'west', name: 'West', color: 'fill-blue-600/60', hoverColor: 'hover:fill-blue-400' }, // NV
+  '16': { id: 'west', name: 'West', color: 'fill-blue-600/60', hoverColor: 'hover:fill-blue-400' }, // ID
+  '49': { id: 'west', name: 'West', color: 'fill-blue-600/60', hoverColor: 'hover:fill-blue-400' }, // UT
+  '08': { id: 'west', name: 'West', color: 'fill-blue-600/60', hoverColor: 'hover:fill-blue-400' }, // CO
+  '56': { id: 'west', name: 'West', color: 'fill-blue-600/60', hoverColor: 'hover:fill-blue-400' }, // WY
+  '30': { id: 'west', name: 'West', color: 'fill-blue-600/60', hoverColor: 'hover:fill-blue-400' }, // MT
+  '02': { id: 'west', name: 'West', color: 'fill-blue-600/60', hoverColor: 'hover:fill-blue-400' }, // AK
+  '15': { id: 'west', name: 'West', color: 'fill-blue-600/60', hoverColor: 'hover:fill-blue-400' }, // HI
 
-  return (
-    <div className="relative w-full h-full min-h-[500px] bg-slate-950 flex flex-col items-center justify-center overflow-hidden rounded-xl border border-amber-500/20 shadow-2xl">
-      <div className="relative w-full h-full p-4">
-        <svg viewBox="0 0 960 500" className="w-full h-auto max-h-[75vh] drop-shadow-lg">
-          <g className="states-group">
-            {states.map((feat: any) => {
-              const fips = feat.id;
-              const pathD = pathGenerator(feat);
-              if (!pathD) return null;
+  // Northeast (Indigo)
+  '36': { id: 'northeast', name: 'Northeast', color: 'fill-indigo-600/60', hoverColor: 'hover:fill-indigo-400' }, // NY
+  '42': { id: 'northeast', name: 'Northeast', color: 'fill-indigo-600/60', hoverColor: 'hover:fill-indigo-400' }, // PA
+  '34': { id: 'northeast', name: 'Northeast', color: 'fill-indigo-600/60', hoverColor: 'hover:fill-indigo-400' }, // NJ
+  '25': { id: 'northeast', name: 'Northeast', color: 'fill-indigo-600/60', hoverColor: 'hover:fill-indigo-400' }, // MA
+  '09': { id: 'northeast', name: 'Northeast', color: 'fill-indigo-600/60', hoverColor: 'hover:fill-indigo-400' }, // CT
+  '44': { id: 'northeast', name: 'Northeast', color: 'fill-indigo-600/60', hoverColor: 'hover:fill-indigo-400' }, // RI
+  '50': { id: 'northeast', name: 'Northeast', color: 'fill-indigo-600/60', hoverColor: 'hover:fill-indigo-400' }, // VT
+  '33': { id: 'northeast', name: 'Northeast', color: 'fill-indigo-600/60', hoverColor: 'hover:fill-indigo-400' }, // NH
+  '23': { id: 'northeast', name: 'Northeast', color: 'fill-indigo-600/60', hoverColor: 'hover:fill-indigo-400' }, // ME
+};
 
-              const isHovered = hoveredFips === fips;
-              const hasJobs = Boolean(STATE_JOBS_DATA[fips]);
-
-              return (
-                <path
-                  key={fips}
-                  d={pathD}
-                  onMouseEnter={() => setHoveredFips(fips)}
-                  onMouseLeave={() => setHoveredFips(null)}
-                  onClick={() => handleStateClick(fips)}
-                  className={	ransition-all duration-200 cursor-pointer stroke-amber-500/40 stroke-[0.75] }
-                />
-              );
-            })}
-          </g>
-        </svg>
-      </div>
-
-      {/* Detailed State Job Breakdown Modal */}
-      {selectedState && (
-        <div className="absolute inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-6 z-50">
-          <div className="bg-slate-900 border border-amber-500/40 rounded-xl p-6 max-w-lg w-full shadow-2xl space-y-4">
-            <div className="flex justify-between items-center border-b border-amber-500/20 pb-3">
-              <div>
-                <h3 className="text-xl font-bold text-amber-400">{selectedState.name} Projects</h3>
-                <p className="text-xs text-slate-400">{selectedState.jobs.length} Active Job Assignments</p>
-              </div>
-              <button
-                onClick={() => setSelectedState(null)}
-                className="text-slate-400 hover:text-amber-400 text-lg font-bold px-2 py-1"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
-              {selectedState.jobs.map((job: JobListing) => (
-                <div
-                  key={job.id}
-                  className="bg-slate-950/80 border border-slate-800 hover:border-amber-500/30 p-4 rounded-lg transition-all"
-                >
-                  <div className="flex justify-between items-start">
-                    <h4 className="text-sm font-semibold text-slate-100">{job.title}</h4>
-                    <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                      {job.status}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">{job.location}</p>
-                  <span className="inline-block mt-2 text-[11px] text-amber-500/80 font-mono">{job.type}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+export function getRegionStyle(fips: string) {
+  const region = FIPS_REGION_MAP[fips];
+  if (!region) return 'fill-slate-800 hover:fill-slate-700';
+  return `${region.color} ${region.hoverColor}`;
 }
