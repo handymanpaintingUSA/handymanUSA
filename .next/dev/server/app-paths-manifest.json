@@ -1,3 +1,6 @@
 {
-  "/page": "app/page.js"
+  "/page": "app/page.js",
+  "/pricing/full-service/page": "app/pricing/full-service/page.js",
+  "/pricing/retainer/page": "app/pricing/retainer/page.js",
+  "/privacy/page": "app/privacy/page.js"
 }
