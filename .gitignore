@@ -4,3 +4,9 @@ node_modules
 .next/
 .open-next/
 .wrangler/
+
+.next/
+.open-next/
+.vercel/
+.wrangler/
+node_modules/
